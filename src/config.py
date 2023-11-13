@@ -21,5 +21,5 @@ YELLOW = (255, 255, 0)
 
 # paths
 GAME_FOLDER = os.path.dirname(__file__)
-IMG_FOLDER = os.path.join(GAME_FOLDER, 'img')
-FONT_FOLDER = os.path.join(GAME_FOLDER, 'fonts')
+IMG_FOLDER = os.path.join(GAME_FOLDER, '../img')
+FONT_FOLDER = os.path.join(GAME_FOLDER, '../fonts')

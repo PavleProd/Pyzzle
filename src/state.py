@@ -24,6 +24,8 @@ def is_solvable(state):
         return (inversion_count + (state.index(0) // config.N)) & 1
 
 
+# initial state - random tuple(0,1..size^2 - 1)
+# goal state - tuple(1,2..size^2 - 1,0)
 def get_init_and_goal_states(seed=123):
     np.random.seed(seed)
     initial_state = [ident for ident in range(config.N ** 2)]
