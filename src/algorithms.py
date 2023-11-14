@@ -1,12 +1,9 @@
-import heapq
 import random
 import time
 import config
-
-from typing import Tuple, List, Callable, Set
+from typing import Tuple, List, Set
 import heapq
 from collections import deque
-from copy import deepcopy
 
 State = Tuple[int]
 
@@ -18,7 +15,7 @@ class Node:  # class with default comparisonFunction that can be overwritten
         self.algorithm = algorithm
 
     def __lt__(self, other):
-        self.algorithm.compareNodes(self, other)
+        return self.algorithm.compareNodes(self, other)
 
 
 class Algorithm:
@@ -44,7 +41,7 @@ class Algorithm:
             legal_actions.append(left_ind)
         return legal_actions
 
-    def apply_action(self, state, action):
+    def apply_action(self, state, action) -> tuple:
         self.nodes_generated += 1
         copy_state = list(state)
         zero_tile_ind = state.index(0)
@@ -99,8 +96,9 @@ class BreadthFirstSearch(Algorithm):
     # adds legal actions to the priority queue
     def addLegalActions(self, bfsQueue, node: Node, goalState: State):
         legalActions: List[int] = self.get_legal_actions(node.state)
+        newNodes = []  # heapq of new nodes for heuristic
 
-        for action in legalActions:
+        for action in legalActions:  # if goalState is reachable return path to goalState
             if self.apply_action(node.state, action) == goalState:
                 return node.path + [action]
 
@@ -108,8 +106,85 @@ class BreadthFirstSearch(Algorithm):
             newNode: Node = Node(self.apply_action(node.state, action), node.path + [action], self)
             if newNode.state in self.visitedNodes:
                 continue
-            bfsQueue.append(newNode)
+            heapq.heappush(newNodes, newNode)
+
+        bfsQueue.extend(newNodes)
         return None
 
     def compareNodes(self, node1: Node, node2: Node):
         return self.heuristic.get_evaluation(node1.state) < self.heuristic.get_evaluation(node2.state)
+
+
+class BestFirstSearch(Algorithm):
+    def get_steps(self, initialState: State, goalState: State):
+        self.visitedNodes = set()
+        bfsQueue = []
+        heapq.heappush(bfsQueue, Node(initialState, [], self))
+        while bfsQueue:
+            node: Node = heapq.heappop(bfsQueue)
+            if node.state in self.visitedNodes:
+                continue
+            self.visitedNodes.add(node.state)
+
+            if node.state == goalState:
+                return node.path
+            self.addLegalActions(bfsQueue, node, goalState)
+
+        return None  # didn't find a solution
+
+    # adds legal actions to the priority queue
+    def addLegalActions(self, bfsQueue, node: Node, goalState: State):
+        legalActions: List[int] = self.get_legal_actions(node.state)
+
+        for action in legalActions:
+            newNode: Node = Node(self.apply_action(node.state, action), node.path + [action], self)
+            if newNode.state in self.visitedNodes:
+                continue
+            heapq.heappush(bfsQueue, newNode)
+
+
+    def compareNodes(self, node1: Node, node2: Node):  # check heuristic and if same check node ID
+        result: bool = self.heuristic.get_evaluation(node1.state) < self.heuristic.get_evaluation(node2.state)
+        if not result:
+            for tile1, tile2 in zip(node1.state, node2.state):
+                if tile1 != tile2:
+                    return tile1 < tile2
+        return result
+
+
+class AStar(Algorithm):
+    def get_steps(self, initialState: State, goalState: State):
+        self.visitedNodes = set()
+        bfsQueue = []
+        heapq.heappush(bfsQueue, Node(initialState, [], self))
+        while len(bfsQueue) > 0:
+            node: Node = heapq.heappop(bfsQueue)
+            if node.state in self.visitedNodes:
+                continue
+            self.visitedNodes.add(node.state)
+
+            if node.state == goalState:
+                return node.path
+            self.addLegalActions(bfsQueue, node, goalState)
+
+        return None  # didn't find a solution
+
+    # adds legal actions to the priority queue
+    def addLegalActions(self, bfsQueue, node: Node, goalState: State):
+        legalActions: List[int] = self.get_legal_actions(node.state)
+
+        for action in legalActions:
+            newNode: Node = Node(self.apply_action(node.state, action), node.path + [action], self)
+            if newNode.state in self.visitedNodes:
+                continue
+            heapq.heappush(bfsQueue, newNode)
+
+
+    def compareNodes(self, node1: Node, node2: Node):  # check heuristic and if same check node ID
+        result: bool = len(node1.path) + self.heuristic.get_evaluation(node1.state) \
+                       < len(node2.path) + self.heuristic.get_evaluation(node2.state)
+        if not result:
+            for tile1, tile2 in zip(node1.state, node2.state):
+                if tile1 != tile2:
+                    return tile1 < tile2
+        return result
