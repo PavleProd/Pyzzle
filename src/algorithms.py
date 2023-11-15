@@ -12,10 +12,10 @@ class Node:  # class with default comparisonFunction that can be overwritten
     def __init__(self, state: State, path: List[int], algorithm):
         self.state = state
         self.path = path
-        self.algorithm = algorithm
+        self.heuristic = algorithm.getHeuristic(self)
 
     def __lt__(self, other):
-        return self.algorithm.compareNodes(self, other)
+        return self.heuristic < other.heuristic
 
 
 class Algorithm:
@@ -62,7 +62,7 @@ class Algorithm:
               f'Nodes evaluated: {self.nodes_evaluated}')
         return solution_actions
 
-    def compareNodes(self, node1: Node, node2: Node):
+    def getHeuristic(self, node):
         return 0
 
 
@@ -84,6 +84,8 @@ class BreadthFirstSearch(Algorithm):
         bfsQueue.append(Node(initialState, [], self))
         while len(bfsQueue) > 0:
             node: Node = bfsQueue.popleft()
+            if node.state in self.visitedNodes:
+                continue
             self.visitedNodes.add(node.state)
             if node.state == goalState:
                 return node.path
@@ -103,16 +105,17 @@ class BreadthFirstSearch(Algorithm):
                 return node.path + [action]
 
         for action in legalActions:
-            newNode: Node = Node(self.apply_action(node.state, action), node.path + [action], self)
-            if newNode.state in self.visitedNodes:
+            newState = self.apply_action(node.state, action)
+            if newState in self.visitedNodes:
                 continue
+            newNode: Node = Node(newState, node.path + [action], self)
             heapq.heappush(newNodes, newNode)
 
         bfsQueue.extend(newNodes)
         return None
 
-    def compareNodes(self, node1: Node, node2: Node):
-        return self.heuristic.get_evaluation(node1.state) < self.heuristic.get_evaluation(node2.state)
+    def getHeuristic(self, node):
+        return self.heuristic.get_evaluation(node.state)
 
 
 class BestFirstSearch(Algorithm):
@@ -137,34 +140,31 @@ class BestFirstSearch(Algorithm):
         legalActions: List[int] = self.get_legal_actions(node.state)
 
         for action in legalActions:
-            newNode: Node = Node(self.apply_action(node.state, action), node.path + [action], self)
-            if newNode.state in self.visitedNodes:
+            newState = self.apply_action(node.state, action)
+            if newState in self.visitedNodes:
                 continue
+            newNode: Node = Node(newState, node.path + [action], self)
             heapq.heappush(bfsQueue, newNode)
 
-
-    def compareNodes(self, node1: Node, node2: Node):  # check heuristic and if same check node ID
-        result: bool = self.heuristic.get_evaluation(node1.state) < self.heuristic.get_evaluation(node2.state)
-        if not result:
-            for tile1, tile2 in zip(node1.state, node2.state):
-                if tile1 != tile2:
-                    return tile1 < tile2
-        return result
+    def getHeuristic(self, node):
+        return self.heuristic.get_evaluation(node.state), node.state
 
 
 class AStar(Algorithm):
     def get_steps(self, initialState: State, goalState: State):
         self.visitedNodes = set()
         bfsQueue = []
+
         heapq.heappush(bfsQueue, Node(initialState, [], self))
         while len(bfsQueue) > 0:
+
             node: Node = heapq.heappop(bfsQueue)
             if node.state in self.visitedNodes:
                 continue
             self.visitedNodes.add(node.state)
-
             if node.state == goalState:
                 return node.path
+
             self.addLegalActions(bfsQueue, node, goalState)
 
         return None  # didn't find a solution
@@ -174,17 +174,13 @@ class AStar(Algorithm):
         legalActions: List[int] = self.get_legal_actions(node.state)
 
         for action in legalActions:
-            newNode: Node = Node(self.apply_action(node.state, action), node.path + [action], self)
-            if newNode.state in self.visitedNodes:
+            newState = self.apply_action(node.state, action)
+            if newState in self.visitedNodes:
                 continue
+            newNode: Node = Node(newState, node.path + [action], self)
+
             heapq.heappush(bfsQueue, newNode)
 
+    def getHeuristic(self, node):
+        return len(node.path) + self.heuristic.get_evaluation(node.state), node.state
 
-    def compareNodes(self, node1: Node, node2: Node):  # check heuristic and if same check node ID
-        result: bool = len(node1.path) + self.heuristic.get_evaluation(node1.state) \
-                       < len(node2.path) + self.heuristic.get_evaluation(node2.state)
-        if not result:
-            for tile1, tile2 in zip(node1.state, node2.state):
-                if tile1 != tile2:
-                    return tile1 < tile2
-        return result

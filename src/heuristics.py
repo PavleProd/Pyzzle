@@ -1,5 +1,7 @@
 from typing import Tuple
 from config import N
+import config
+import time
 
 State = Tuple[int]
 
@@ -27,18 +29,22 @@ class Hamming(Heuristic):  # Heuristic is number of tiles not in place
 
 # heuristic is sum of manhattan distances, or minimum number of moves to get tile to the target tile
 class Manhattan(Heuristic):
+    def __init__(self):
+        self.distances = [[0 for _ in range(N**2)] for _ in range(N**2)]
+
+        for i in range(N**2):
+            for j in range(N**2):
+                rowI, colI = divmod(i, N)
+                rowJ, colJ = divmod(j, N)
+                self.distances[i][j] = abs(rowI - rowJ) + abs(colI - colJ)
+
     def get_evaluation(self, state):
         heuristic = 0
-        for i in range(len(state)):
-            if state[i] == 0:
+        for i, val in enumerate(state):
+            if val == 0:
                 continue
-            rowI = i // N
-            colI = i % N
-
-            target = (state[i] - 1) % (N ** 2)
-            rowTarget = target // N
-            colTarget = target % N
-
-            heuristic += abs(rowI - rowTarget) + abs(colI - colTarget)
-
+            target = (val - 1) % (N ** 2)
+            heuristic += self.distances[i][target]
         return heuristic
+
+

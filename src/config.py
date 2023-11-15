@@ -10,6 +10,7 @@ FRAMES_PER_SEC_TILE_DRAW = 2 * TILE_SIZE
 FRAMES_PER_SEC = 120
 GAME_FONT = None
 INFO_FONT = None
+timePassed = 0
 
 # define colors
 WHITE = (255, 255, 255)
